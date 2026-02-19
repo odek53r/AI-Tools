@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature Plan Evaluator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">⚡</span>
+                <span class="logo-text">Feature Plan Evaluator</span>
+            </div>
+            <div class="header-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Online</span>
+            </div>
+        </div>
+    </header>
+    <main class="main">
+        <section class="tool-panel active" id="tool-evaluate">
+            <div class="panel-header">
+                <h2>功能計畫評估器</h2>
+                <p class="panel-desc">描述你想開發的功能，AI 幫你全面分析值不值得做</p>
+            </div>
+            <div class="tool-body">
+                <div class="upload-zone" id="upload-zone">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">拖放檔案到此處，或<span class="upload-link">點擊選取</span></div>
+                    <div class="upload-hint">支援 .txt、.md、.pdf、.xlsx（最大 2MB）</div>
+                    <input type="file" id="file-input" accept=".txt,.md,.pdf,.xlsx,.xls" hidden>
+                </div>
+                <div class="file-info hidden" id="file-info">
+                    <span class="file-name" id="file-name"></span>
+                    <button class="file-remove" id="file-remove">✕</button>
+                </div>
+                <div class="input-divider">
+                    <span>或直接輸入</span>
+                </div>
+                <textarea id="evaluate-input" class="tool-textarea" placeholder="描述你想開發的功能，例如：&#10;&#10;「我們想在 App 加入 AI 客服功能，自動回覆用戶常見問題，支援多語言，並能在無法解答時轉接真人客服...」" rows="8"></textarea>
+                <button class="action-btn" id="evaluate-btn">開始評估</button>
+                <div class="result-box hidden" id="evaluate-result">
+                    <div class="result-label">評估結果</div>
+                    <div class="result-content" id="evaluate-output"></div>
+                    <button class="copy-btn" data-target="evaluate-output">複製</button>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer class="footer">
+        <span>Built with FastAPI + OpenAI</span>
+    </footer>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
