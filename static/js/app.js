@@ -58,6 +58,31 @@ fileRemove.addEventListener('click', () => {
     uploadZone.style.display = '';
 });
 
+// Parse SSE lines from a text chunk, returning parsed events and any leftover partial line
+function parseSSE(text) {
+    const events = [];
+    const lines = text.split('\n');
+    let currentEvent = null;
+    let currentData = null;
+
+    for (const line of lines) {
+        if (line.startsWith('event: ')) {
+            currentEvent = line.slice(7);
+        } else if (line.startsWith('data: ')) {
+            currentData = line.slice(6);
+        } else if (line === '' && currentEvent && currentData) {
+            try {
+                events.push({ event: currentEvent, data: JSON.parse(currentData) });
+            } catch (e) {
+                // skip malformed JSON
+            }
+            currentEvent = null;
+            currentData = null;
+        }
+    }
+    return events;
+}
+
 // Evaluate
 evaluateBtn.addEventListener('click', async () => {
     const text = evaluateInput.value.trim();
@@ -72,21 +97,63 @@ evaluateBtn.addEventListener('click', async () => {
 
     evaluateBtn.disabled = true;
     evaluateBtn.innerHTML = '<span class="loading-spinner"></span>AI 分析中，請稍候...';
-    resultBox.classList.add('hidden');
+    resultOutput.innerHTML = '<p style="color:#94a3b8"><span class="loading-spinner"></span> 正在啟動分析...</p>';
+    resultBox.classList.remove('hidden');
+
+    let searchCount = 0;
+    let streamedText = '';
+    let renderTimer = null;
 
     try {
         const res = await fetch('/api/evaluate', { method: 'POST', body: formData });
-        const data = await res.json();
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-        if (data.error) {
-            resultOutput.innerHTML = `<p style="color:#f87171">${escapeHtml(data.error)}</p>`;
-        } else {
-            resultOutput.innerHTML = renderMarkdown(data.result);
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+
+            let boundary;
+            while ((boundary = buffer.indexOf('\n\n')) !== -1) {
+                const chunk = buffer.slice(0, boundary + 2);
+                buffer = buffer.slice(boundary + 2);
+
+                const events = parseSSE(chunk);
+                for (const evt of events) {
+                    if (evt.event === 'status') {
+                        resultOutput.innerHTML = `<p style="color:#94a3b8"><span class="loading-spinner"></span> ${escapeHtml(evt.data.message)}</p>`;
+                    } else if (evt.event === 'search') {
+                        searchCount++;
+                        evaluateBtn.innerHTML = `<span class="loading-spinner"></span>\uD83D\uDD0D ${escapeHtml(evt.data.query)}`;
+                        resultOutput.innerHTML += `<p style="color:#94a3b8">\uD83D\uDD0D 搜尋 #${searchCount}：${escapeHtml(evt.data.query)}</p>`;
+                    } else if (evt.event === 'delta') {
+                        streamedText += evt.data.content;
+                        if (!renderTimer) {
+                            renderTimer = setTimeout(() => {
+                                resultOutput.innerHTML = renderMarkdown(streamedText);
+                                renderTimer = null;
+                            }, 100);
+                        }
+                    } else if (evt.event === 'done') {
+                        if (renderTimer) { clearTimeout(renderTimer); renderTimer = null; }
+                        resultOutput.innerHTML = renderMarkdown(streamedText);
+                    } else if (evt.event === 'result') {
+                        resultOutput.innerHTML = renderMarkdown(evt.data.result);
+                    } else if (evt.event === 'error') {
+                        resultOutput.innerHTML = `<p style="color:#f87171">${escapeHtml(evt.data.error)}</p>`;
+                    }
+                }
+            }
         }
-        resultBox.classList.remove('hidden');
+        if (streamedText && renderTimer) {
+            clearTimeout(renderTimer);
+            resultOutput.innerHTML = renderMarkdown(streamedText);
+        }
     } catch (e) {
         resultOutput.innerHTML = '<p style="color:#f87171">發生錯誤，請稍後再試。</p>';
-        resultBox.classList.remove('hidden');
     }
 
     evaluateBtn.disabled = false;
