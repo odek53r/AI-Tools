@@ -6,7 +6,7 @@
     <title>Feature Plan Evaluator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=3">
 </head>
 <body>
     <header class="header">
@@ -44,7 +44,7 @@
                 <textarea id="evaluate-input" class="tool-textarea" placeholder="描述你想開發的功能，例如：&#10;&#10;「我們想在 App 加入 AI 客服功能，自動回覆用戶常見問題，支援多語言，並能在無法解答時轉接真人客服...」" rows="8"></textarea>
                 <button class="action-btn" id="evaluate-btn">開始評估</button>
                 <div class="result-box hidden" id="evaluate-result">
-                    <div class="result-label">評估結果</div>
+                    <div class="result-label"><span class="label-main">評估結果</span><span class="label-example">範例結果 — 輸入你的功能描述，開始真正的評估</span></div>
                     <div class="result-content" id="evaluate-output"></div>
                     <button class="copy-btn" data-target="evaluate-output">複製</button>
                 </div>
@@ -54,6 +54,6 @@
     <footer class="footer">
         <span>Built with FastAPI + OpenAI</span>
     </footer>
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=3"></script>
 </body>
 </html>

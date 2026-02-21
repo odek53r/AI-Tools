@@ -70,6 +70,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .result-content hr{border:none;border-top:1px solid var(--border);margin:1rem 0}
 .result-content strong{color:var(--accent)}
 
+/* Example hint state */
+.result-box .label-example{display:none}
+.result-box.is-example .label-main{display:none}
+.result-box.is-example .label-example{display:inline;color:var(--text-2);font-weight:400;letter-spacing:0}
+.result-box.is-example{position:relative}
+.result-box.is-example .result-content{opacity:0.5}
+.result-box.is-example .copy-btn{display:none}
+
 @media(max-width:640px){
     .header-inner{padding:0 1rem}
     .header-status{display:none}
