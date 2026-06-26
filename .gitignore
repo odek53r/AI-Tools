@@ -5,3 +5,5 @@ venv/
 .venv/
 *.egg-info/
 .DS_Store
+tests/outputs/
+.pytest_cache/
