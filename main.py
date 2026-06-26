@@ -16,7 +16,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+load_dotenv(override=True)
 
 app = FastAPI(title="AI Tools", version="0.2.0")
 
@@ -45,7 +45,12 @@ def get_openai_client() -> AsyncOpenAI:
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY not set")
-        openai_client = AsyncOpenAI(api_key=api_key)
+        # 顯式以 .env 的值控制組織：未設定時傳 None＝使用 key 的預設組織，
+        # 可避免執行環境殘留的 OPENAI_ORG_ID 造成 invalid_organization (401)。
+        openai_client = AsyncOpenAI(
+            api_key=api_key,
+            organization=os.environ.get("OPENAI_ORG_ID") or None,
+        )
     return openai_client
 
 
@@ -188,6 +193,30 @@ async def health():
 def sse_event(event: str, data: dict) -> str:
     """Format a server-sent event."""
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+async def with_keepalive(gen, interval=5):
+    """Wrap an async generator with keep-alive heartbeats every `interval` seconds."""
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
+
+    async def _produce():
+        try:
+            async for item in gen:
+                await queue.put(item)
+        finally:
+            await queue.put(None)
+
+    task = asyncio.create_task(_produce())
+    while True:
+        try:
+            item = await asyncio.wait_for(queue.get(), timeout=interval)
+        except asyncio.TimeoutError:
+            yield ": keep-alive\n\n"
+            continue
+        if item is None:
+            break
+        yield item
+    await task
 
 
 @app.post("/api/evaluate")
@@ -364,29 +393,6 @@ async def evaluate(
             yield sse_event("result", {"result": response.text})
         except Exception as e:
             yield sse_event("error", {"error": f"AI 分析時發生錯誤：{str(e)}"})
-
-    async def with_keepalive(gen, interval=5):
-        """Wrap an async generator with keep-alive heartbeats."""
-        queue: asyncio.Queue[str | None] = asyncio.Queue()
-
-        async def _produce():
-            try:
-                async for item in gen:
-                    await queue.put(item)
-            finally:
-                await queue.put(None)
-
-        task = asyncio.create_task(_produce())
-        while True:
-            try:
-                item = await asyncio.wait_for(queue.get(), timeout=interval)
-            except asyncio.TimeoutError:
-                yield ": keep-alive\n\n"
-                continue
-            if item is None:
-                break
-            yield item
-        await task
 
     generator = openai_stream if LLM_PROVIDER == "openai" else gemini_stream
     return StreamingResponse(
